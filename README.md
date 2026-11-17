@@ -1,37 +1,38 @@
-# Fleet Dashboard: Architecture Decision Record
+# Fleet Dashboard
 
-**Task 1 (Ezitech): Component Architecture Decision Record and Design Trade-offs**
+Ezitech internship project: a live dispatch table for **400 concurrent vehicles**.
 
-This repository documents the architecture for a live dispatch table that handles **400 concurrent vehicles** receiving mock WebSocket updates.
+| Task | What | Where |
+|---|---|---|
+| 1 | Architecture Decision Record (why custom virtualisation, not a heavy UI library) | [`ADR.md`](./ADR.md), [`docs/adr/`](./docs/adr/) |
+| 2 | Virtualised list component built from scratch | [`src/virtual-list.js`](./src/virtual-list.js), demo in [`index.html`](./index.html) |
 
-## What is in this repo
+## Task 2: Virtualised list
 
-| File | Purpose |
-|---|---|
-| [`ADR.md`](./ADR.md) | The ADR, placed in the repository root. |
-| [`docs/adr/0001-state-management-and-virtualisation-for-400-vehicles.md`](./docs/adr/0001-state-management-and-virtualisation-for-400-vehicles.md) | The same ADR in the standard `docs/adr` folder. |
+Renders 400 vehicle rows with **dynamic row heights** (rows have 0 to 3 note sentences, so heights differ) using only a small, fixed pool of DOM elements.
 
-## Decision in one paragraph
+### Run it
+Open `index.html` in a browser. There is no build step and no dependencies.
 
-Instead of a heavy UI library (AG Grid, MUI DataGrid) or rendering all 400 rows, we use a **custom virtualised list** (only ~20-25 visible rows mounted), a **normalised `Map` store**, and **requestAnimationFrame-batched updates** so 400 messages per second become at most 60 DOM flushes per second.
+### How it works
+1. **Viewport maths:** a spacer div gives the scrollbar the full height. A binary search over prefix-sum offsets finds the first and last visible rows.
+2. **requestAnimationFrame throttling:** scroll events schedule at most one update per frame.
+3. **DOM recycling:** a fixed pool of row elements is created once. Row `i` always uses `pool[i % poolSize]`, so rows that stay on screen are not re-rendered.
+4. **Dynamic heights:** visible rows are measured after rendering. Offsets are recomputed and `scrollTop` is corrected so content does not jump when a row above the viewport changes height.
+5. **Reads and writes are batched** (write all rows, then read all heights) to avoid layout thrashing.
 
-## Rejected alternatives (with trade-offs)
+### Verify the three "done" points yourself
+- **Constant DOM count:** the on-page readout shows "Total nodes in list". It stays the same at any scroll position. Or run this in the DevTools console while scrolling: `document.querySelector('#viewport').querySelectorAll('*').length`
+- **60fps:** DevTools, Performance tab, Record, click "Start auto-scroll stress test", record for 5 seconds, then Stop. Frames should stay green with no long red tasks. The page also shows live FPS and worst frame time.
+- **Dynamic heights:** rows visibly differ in height. Use "Jump to row" and scroll back and forth, and the content does not jump.
 
-1. **Render all 400 rows:** about 5,000+ DOM nodes versus about 300 with virtualisation.
-2. **AG Grid Community:** about 250-300 KB gzipped, versus about 2 KB of custom code.
-3. **MUI X DataGrid:** about 100-150 KB gzipped plus a React and MUI runtime.
-4. **Virtual-list library (TanStack Virtual / react-window):** about 3-6 KB, a viable fallback kept in reserve.
+### Automated check (headless Chromium)
+Scrolled to 9 positions including the top, the bottom and 3 random-access jumps. Node count stayed at 153 (19 row elements) every time, the viewport was always fully covered by rows, and there were no console errors.
 
-## Data flow
-
-Mock WebSocket → Parser → Pending queue → (once per frame) Store → Dirty IDs → Virtual window → Row renderer → DOM.
-
-A full diagram is in the ADR.
-
-## Note on figures
-
-Bundle sizes and node counts are marked **(est.)** in the ADR. The ADR's Validation Plan lists how to replace them with measured values.
+### Limitations
+- Row heights are measured when a row first becomes visible. Heights of rows never seen are estimated (84 px) until then, so the scrollbar thumb size can shift slightly during the first scroll.
+- If the window width changes, measurements are reset and re-measured as needed.
+- Browser Ctrl+F only finds rows currently in the DOM (see ADR, Consequences).
 
 ## Author
-
 Hashim Anwar, BSc Computer Science, Lahore Leads University.

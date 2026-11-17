@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fleet Dashboard - Virtualised Vehicle List</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <h1>Virtualised Vehicle List</h1>
+    <p class="sub">400 vehicles, dynamic row heights, DOM node count stays constant while scrolling.</p>
+
+    <dl class="hud" aria-label="Live performance readout">
+      <div><dt>Visible range</dt><dd id="stat-range">-</dd></div>
+      <div><dt>Row elements in DOM</dt><dd id="stat-rows">-</dd></div>
+      <div><dt>Total nodes in list</dt><dd id="stat-nodes">-</dd></div>
+      <div><dt>FPS</dt><dd id="stat-fps">-</dd></div>
+      <div><dt>Worst frame</dt><dd id="stat-worst">-</dd></div>
+    </dl>
+
+    <div class="controls">
+      <form id="jump-form">
+        <input id="jump-input" type="number" min="1" max="400" value="200" aria-label="Row number to jump to">
+        <button type="submit">Jump to row</button>
+      </form>
+      <button id="stress-btn" type="button" aria-pressed="false">Start auto-scroll stress test</button>
+    </div>
+
+    <div id="viewport" class="viewport" tabindex="0" role="region" aria-label="Vehicle list, 400 items"></div>
+    <p class="note-foot">Tip: open DevTools &rarr; Elements and watch the list. The node count never changes, however far you scroll.</p>
+  </main>
+
+  <script src="src/virtual-list.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
